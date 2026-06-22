@@ -1,4 +1,4 @@
-<!-- src/app/admin/login/login.html -->
+<!-- src/app/admin/auth/login/login.html -->
 <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <!-- Logo and Header -->
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
@@ -22,6 +22,26 @@
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div class="bg-white py-8 px-4 shadow-xl shadow-gray-100/50 sm:rounded-xl sm:px-10 border border-gray-100">
 
+            <!-- Success Message for Resend -->
+            @if (resendSuccess) {
+            <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-green-700">{{ resendMessage }}</p>
+                        <p class="text-sm text-green-600 mt-1">Please check your email and click the confirmation link.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            }
+
             <!-- Error Message -->
             @if (errorMessage) {
             <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -37,6 +57,35 @@
                         <p class="text-sm text-red-700">{{ errorMessage }}</p>
                     </div>
                 </div>
+                <!-- ✅ Resend Confirmation Link -->
+                @if (showResendLink) {
+                <div class="mt-3 pt-3 border-t border-red-200">
+                    <p class="text-sm text-gray-600">
+                        Didn't receive the confirmation email?
+                        <button (click)="resendConfirmation()" [disabled]="isResending"
+                            class="font-medium text-blue-600 hover:text-blue-500 transition duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
+                            @if (isResending) {
+                            <span class="inline-flex items-center">
+                                <svg class="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none"
+                                    viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                Sending...
+                            </span>
+                            } @else {
+                            Resend Confirmation Email
+                            }
+                        </button>
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        A new confirmation link will be sent to <strong>{{ emailForResend }}</strong>
+                    </p>
+                </div>
+                }
             </div>
             }
 
