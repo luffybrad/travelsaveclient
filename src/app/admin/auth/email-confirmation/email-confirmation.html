@@ -2,7 +2,7 @@
 <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md">
         <div class="flex justify-center">
-            <div [class]="status === 'success' ? 'bg-green-600' : 'bg-red-600'"
+            <div [class]="status === 'success' ? 'bg-green-600' : (status === 'loading' ? 'bg-blue-600' : 'bg-red-600')"
                 class="w-20 h-20 rounded-full flex items-center justify-center shadow-lg">
                 @if (isLoading) {
                 <svg class="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"

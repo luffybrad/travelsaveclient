@@ -160,6 +160,17 @@ export class AuthService {
       .pipe(catchError(this.handleError));
   }
 
+  confirmEmail(userId: string, token: string): Observable<ApiResponse<any>> {
+    return this.http
+      .get<ApiResponse<any>>(`${this.API_URL}/confirm-email`, {
+        params: {
+          userId: userId,
+          token: token,
+        },
+      })
+      .pipe(catchError(this.handleError));
+  }
+
   // Token Management
   private setAuthData(data: {
     accessToken: string;
