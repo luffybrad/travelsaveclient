@@ -14,25 +14,37 @@ export const routes: Routes = [
     children: [
       {
         path: 'login',
-        loadComponent: () => import('./admin/login/login').then((m) => m.LoginComponent),
+        loadComponent: () => import('./admin/auth/login/login').then((m) => m.LoginComponent),
         canActivate: [PublicGuard],
       },
       {
         path: 'register',
-        loadComponent: () => import('./admin/register/register').then((m) => m.RegisterComponent),
+        loadComponent: () =>
+          import('./admin/auth/register/register').then((m) => m.RegisterComponent),
         canActivate: [PublicGuard],
       },
       {
         path: 'forgot-password',
         loadComponent: () =>
-          import('./admin/forgot-password/forgot-password').then((m) => m.ForgotPasswordComponent),
+          import('./admin/auth/forgot-password/forgot-password').then(
+            (m) => m.ForgotPasswordComponent,
+          ),
         canActivate: [PublicGuard],
       },
       {
         path: 'reset-password',
         loadComponent: () =>
-          import('./admin/reset-password/reset-password').then((m) => m.ResetPasswordComponent),
+          import('./admin/auth/reset-password/reset-password').then(
+            (m) => m.ResetPasswordComponent,
+          ),
         canActivate: [PublicGuard],
+      },
+      {
+        path: 'email-confirmation',
+        loadComponent: () =>
+          import('./admin/auth/email-confirmation/email-confirmation').then(
+            (m) => m.EmailConfirmationComponent,
+          ),
       },
     ],
   },
