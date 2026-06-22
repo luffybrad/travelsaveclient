@@ -36,39 +36,42 @@ export class EmailConfirmationComponent implements OnInit {
     this.route.queryParams.subscribe((params) => {
       console.log('🔍 Email Confirmation - Query params:', params);
 
-      const status = params['status'];
-      const message = params['message'];
-      const email = params['email'];
-      const userId = params['userId'];
-      const token = params['token'];
+      // ✅ Check for status param from redirect (backward compatibility)
+      const statusParam = params['status'];
+      const messageParam = params['message'];
+      const emailParam = params['email'];
+      const userIdParam = params['userId'];
+      const tokenParam = params['token'];
 
-      // If coming from backend redirect with status
-      if (status) {
-        this.status = status === 'success' ? 'success' : 'error';
-        this.isLoading = false;
-        this.message = message
-          ? decodeURIComponent(message)
-          : status === 'success'
-            ? 'Your email has been verified!'
-            : 'Verification failed';
-        this.email = email ? decodeURIComponent(email) : null;
+      // If we have userId and token, call the API
+      if (userIdParam && tokenParam) {
+        this.userId = userIdParam;
+        this.token = tokenParam;
+        this.email = emailParam ? decodeURIComponent(emailParam) : null;
+        this.verifyEmailWithApi(userIdParam, tokenParam);
         return;
       }
 
-      // ✅ If coming directly with userId and token in URL - CALL THE API
-      if (userId && token) {
-        this.userId = userId;
-        this.token = token;
-        this.verifyEmailWithApi(userId, token);
-      } else {
-        this.status = 'error';
+      // If coming from backend redirect with status (backward compatibility)
+      if (statusParam) {
+        this.status = statusParam === 'success' ? 'success' : 'error';
         this.isLoading = false;
-        this.errorMessage = 'Invalid verification link. Missing required parameters.';
+        this.message = messageParam
+          ? decodeURIComponent(messageParam)
+          : statusParam === 'success'
+            ? 'Your email has been verified!'
+            : 'Verification failed';
+        this.email = emailParam ? decodeURIComponent(emailParam) : null;
+        return;
       }
+
+      // No valid parameters found
+      this.status = 'error';
+      this.isLoading = false;
+      this.errorMessage = 'Invalid verification link. Missing required parameters.';
     });
   }
 
-  // ✅ NEW: Actually call the API to verify email
   private verifyEmailWithApi(userId: string, token: string): void {
     console.log('🔍 Calling verifyEmail API with userId:', userId, 'token:', token);
 
@@ -93,9 +96,17 @@ export class EmailConfirmationComponent implements OnInit {
         },
         error: (error) => {
           console.error('❌ Email verification error:', error);
+
+          // ✅ Check if the error has a message from the backend
+          if (error?.error?.message) {
+            this.errorMessage = error.error.message;
+          } else if (error?.message) {
+            this.errorMessage = error.message;
+          } else {
+            this.errorMessage = 'An error occurred during verification. Please try again.';
+          }
+
           this.status = 'error';
-          this.errorMessage =
-            error?.error?.message || 'An error occurred during verification. Please try again.';
         },
       });
   }
@@ -111,7 +122,7 @@ export class EmailConfirmationComponent implements OnInit {
       return;
     }
 
-    // ✅ If we have email from params or we need to get it from user
+    // Try to get email from params or prompt user
     const emailToUse = this.email;
     if (!emailToUse) {
       this.errorMessage = 'Email address not available. Please go to login.';
