@@ -86,27 +86,6 @@ export class AuthService {
     );
   }
 
-  // Refresh Token
-  refreshToken(): Observable<AuthResponse> {
-    const refreshToken = this.getRefreshToken();
-    if (!refreshToken) {
-      this.logout();
-      return throwError(() => new Error('No refresh token available'));
-    }
-
-    return this.http.post<AuthResponse>(`${this.API_URL}/refresh`, { refreshToken }).pipe(
-      tap((response) => {
-        if (response.success && response.data) {
-          this.setAuthData(response.data);
-        }
-      }),
-      catchError((error) => {
-        this.logout();
-        return throwError(() => error);
-      }),
-    );
-  }
-
   // Logout
   logout(): void {
     const token = this.getToken();
@@ -203,10 +182,6 @@ export class AuthService {
     this.isAdminSubject.next(false);
   }
 
-  getToken(): string | null {
-    return localStorage.getItem(this.TOKEN_KEY);
-  }
-
   getRefreshToken(): string | null {
     return localStorage.getItem(this.REFRESH_TOKEN_KEY);
   }
@@ -257,5 +232,53 @@ export class AuthService {
       }
     }
     return [];
+  }
+
+  // src/app/services/auth.service.ts
+
+  // Add this method to get the token with proper error handling
+  getToken(): string | null {
+    const token = localStorage.getItem(this.TOKEN_KEY);
+    if (token) {
+      // ✅ Check if token is expired
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const expiration = payload.exp * 1000;
+        if (Date.now() >= expiration) {
+          // Token expired, trigger refresh
+          this.refreshToken().subscribe({
+            next: () => {},
+            error: () => this.logout(),
+          });
+          return null;
+        }
+        return token;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // Update refreshToken to properly update the token
+  refreshToken(): Observable<AuthResponse> {
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      this.logout();
+      return throwError(() => new Error('No refresh token available'));
+    }
+
+    return this.http.post<AuthResponse>(`${this.API_URL}/refresh`, { refreshToken }).pipe(
+      tap((response) => {
+        if (response.success && response.data) {
+          // ✅ Properly update all tokens
+          this.setAuthData(response.data);
+        }
+      }),
+      catchError((error) => {
+        this.logout();
+        return throwError(() => error);
+      }),
+    );
   }
 }
