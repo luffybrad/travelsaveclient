@@ -6,10 +6,9 @@ import {
   HttpHandler,
   HttpEvent,
   HttpErrorResponse,
-  HttpHeaders,
 } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, filter, take, switchMap, tap } from 'rxjs/operators';
+import { catchError, filter, take, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
 @Injectable()
@@ -21,35 +20,20 @@ export class AuthInterceptor implements HttpInterceptor {
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     // Skip adding token for auth endpoints
-    if (req.url.includes('/api/Auth/') && !req.url.includes('/api/Auth/refresh')) {
+    if (req.url.includes('/api/Auth/')) {
       return next.handle(req);
     }
-
-    // Skip token for health endpoints
-    if (req.url.includes('/api/Admin/system/health')) {
-      return next.handle(req);
-    }
-
-    console.log('🔄 Interceptor - Request:', req.url);
-    console.log('🔄 Interceptor - Method:', req.method);
 
     const token = this.authService.getToken();
-    console.log('🔄 Interceptor - Token exists:', !!token);
-
     let authReq = req;
 
     if (token) {
       authReq = this.addTokenToRequest(req, token);
-      console.log('🔄 Interceptor - Added token to request');
     }
 
     return next.handle(authReq).pipe(
       catchError((error) => {
-        if (
-          error instanceof HttpErrorResponse &&
-          error.status === 401 &&
-          !req.url.includes('/api/Auth/login')
-        ) {
+        if (error instanceof HttpErrorResponse && error.status === 401) {
           return this.handle401Error(authReq, next);
         }
         return throwError(() => error);
@@ -74,10 +58,8 @@ export class AuthInterceptor implements HttpInterceptor {
         switchMap((response: any) => {
           this.isRefreshing = false;
           if (response.success && response.data) {
-            const newToken = response.data.accessToken;
-            this.refreshTokenSubject.next(newToken);
-            // ✅ Update the request with the new token
-            return next.handle(this.addTokenToRequest(request, newToken));
+            this.refreshTokenSubject.next(response.data.accessToken);
+            return next.handle(this.addTokenToRequest(request, response.data.accessToken));
           }
           this.authService.logout();
           return throwError(() => new Error('Token refresh failed'));
@@ -93,7 +75,6 @@ export class AuthInterceptor implements HttpInterceptor {
         filter((token) => token !== null),
         take(1),
         switchMap((token) => {
-          // ✅ Use the new token for the request
           return next.handle(this.addTokenToRequest(request, token!));
         }),
       );
