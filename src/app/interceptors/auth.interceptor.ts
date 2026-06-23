@@ -8,7 +8,7 @@ import {
   HttpErrorResponse,
 } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, filter, take, switchMap } from 'rxjs/operators';
+import { catchError, filter, take, switchMap, tap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class AuthInterceptor implements HttpInterceptor {
   constructor(private authService: AuthService) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // ✅ ONLY skip login and register endpoints (not all auth endpoints)
+    // ✅ Only skip login and register endpoints
     const isLoginOrRegister =
       req.url.includes('/api/Auth/admin/login') ||
       req.url.includes('/api/Auth/user/login') ||
@@ -31,32 +31,47 @@ export class AuthInterceptor implements HttpInterceptor {
       return next.handle(req);
     }
 
-    // Skip OPTIONS requests (CORS preflight)
+    // Skip OPTIONS requests
     if (req.method === 'OPTIONS') {
       return next.handle(req);
     }
 
     console.log('🔄 Interceptor - Request:', req.url);
 
-    const token = this.authService.getToken();
-    console.log('🔄 Interceptor - Token exists:', !!token);
+    // ✅ Get token directly from localStorage - bypass authService
+    const token = localStorage.getItem('access_token');
+    console.log('🔄 Interceptor - Token from localStorage:', !!token);
+    console.log('🔄 Interceptor - Token preview:', token ? token.substring(0, 30) + '...' : 'null');
 
     let authReq = req;
 
     if (token) {
+      // ✅ Force clone the request with the token
       authReq = req.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
       });
-      console.log('🔄 Interceptor - Added Authorization header');
+      console.log('🔄 Interceptor - ✅ Added Authorization header');
+      console.log('🔄 Interceptor - ✅ Authorization:', `Bearer ${token.substring(0, 20)}...`);
     } else {
-      console.log('🔄 Interceptor - No token available');
+      console.log('🔄 Interceptor - ❌ No token available');
     }
 
     return next.handle(authReq).pipe(
+      tap({
+        next: (event: any) => {
+          if (event && event.status) {
+            console.log('✅ Interceptor - Response status:', event.status);
+          }
+        },
+        error: (error: any) => {
+          console.log('❌ Interceptor - Error status:', error.status);
+        },
+      }),
       catchError((error) => {
-        console.log('❌ Interceptor - Error:', error.status, error.message);
+        console.log('❌ Interceptor - Caught error:', error.status, error.message);
         if (
           error instanceof HttpErrorResponse &&
           error.status === 401 &&
@@ -69,14 +84,6 @@ export class AuthInterceptor implements HttpInterceptor {
         return throwError(() => error);
       }),
     );
-  }
-
-  private addTokenToRequest(request: HttpRequest<any>, token: string): HttpRequest<any> {
-    return request.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
   }
 
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
@@ -92,11 +99,18 @@ export class AuthInterceptor implements HttpInterceptor {
           if (response.success && response.data) {
             const newToken = response.data.accessToken;
             console.log('🔄 Interceptor - New token obtained');
+            localStorage.setItem('access_token', newToken); // ✅ Force save
             this.refreshTokenSubject.next(newToken);
             // ✅ Retry the original request with new token
-            return next.handle(this.addTokenToRequest(request, newToken));
+            const newRequest = request.clone({
+              setHeaders: {
+                Authorization: `Bearer ${newToken}`,
+                'Content-Type': 'application/json',
+              },
+            });
+            return next.handle(newRequest);
           }
-          console.log('🔄 Interceptor - Refresh failed, logging out');
+          console.log('🔄 Interceptor - Refresh failed, clearing auth data');
           this.authService.logout();
           return throwError(() => new Error('Token refresh failed'));
         }),
@@ -114,7 +128,13 @@ export class AuthInterceptor implements HttpInterceptor {
         take(1),
         switchMap((token) => {
           console.log('🔄 Interceptor - Using new token from queue');
-          return next.handle(this.addTokenToRequest(request, token!));
+          const newRequest = request.clone({
+            setHeaders: {
+              Authorization: `Bearer ${token!}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          return next.handle(newRequest);
         }),
       );
     }

@@ -58,26 +58,40 @@ export class LoginComponent implements OnInit {
     const { email, password } = this.loginForm.value;
     this.emailForResend = email;
 
+    console.log('🔑 Attempting login for:', email);
+
     this.authService
       .loginAdmin({ email, password })
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
         next: (response) => {
+          console.log('🔑 Login response:', response);
+
           if (response.success) {
-            this.router.navigate([this.returnUrl]);
+            // ✅ Verify token was stored
+            const token = localStorage.getItem('access_token');
+            console.log('🔑 Token in localStorage:', !!token);
+            if (token) {
+              console.log('🔑 Token preview:', token.substring(0, 30) + '...');
+            }
+
+            // ✅ Navigate after a small delay to ensure token is saved
+            setTimeout(() => {
+              console.log('🔑 Navigating to:', this.returnUrl);
+              this.router.navigate([this.returnUrl]);
+            }, 100);
           } else {
             this.errorMessage = response.message || 'Login failed. Please try again.';
-            // ✅ Check if the error message is about email confirmation
             if (this.errorMessage.toLowerCase().includes('confirm your email')) {
               this.showResendLink = true;
             }
           }
         },
         error: (error) => {
+          console.error('🔑 Login error:', error);
           const message =
             error?.error?.message || 'An unexpected error occurred. Please try again.';
           this.errorMessage = message;
-          // ✅ Check if the error message is about email confirmation
           if (message.toLowerCase().includes('confirm your email')) {
             this.showResendLink = true;
           }
