@@ -74,12 +74,25 @@ export class AuthService {
       .pipe(catchError(this.handleError));
   }
 
-  // Admin Login
+  // src/app/services/auth.service.ts
+
   loginAdmin(data: AdminLoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API_URL}/admin/login`, data).pipe(
       tap((response) => {
+        console.log('🔑 loginAdmin response:', response);
         if (response.success && response.data) {
+          console.log(
+            '🔑 Access token from API:',
+            response.data.accessToken?.substring(0, 30) + '...',
+          );
+          console.log(
+            '🔑 Refresh token from API:',
+            response.data.refreshToken?.substring(0, 30) + '...',
+          );
           this.setAuthData(response.data);
+          // Verify storage
+          console.log('🔑 Token stored?', !!localStorage.getItem(this.TOKEN_KEY));
+          console.log('🔑 Refresh stored?', !!localStorage.getItem(this.REFRESH_TOKEN_KEY));
         }
       }),
       catchError(this.handleError),

@@ -42,7 +42,7 @@ export class AuthInterceptor implements HttpInterceptor {
       return next.handle(req);
     }
 
-    const token = localStorage.getItem('access_token');
+    const token = this.authService.getToken();
     console.log('🔄 Interceptor - Token exists:', !!token);
 
     let authReq = req.clone({ withCredentials: false }); // Always disable credentials
