@@ -74,23 +74,23 @@ export class AuthService {
       .pipe(catchError(this.handleError));
   }
 
-  // src/app/services/auth.service.ts
-
+  // Admin Login
   loginAdmin(data: AdminLoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.API_URL}/admin/login`, data).pipe(
       tap((response) => {
         console.log('🔑 loginAdmin response:', response);
         if (response.success && response.data) {
-          console.log(
-            '🔑 Access token from API:',
-            response.data.accessToken?.substring(0, 30) + '...',
-          );
-          console.log(
-            '🔑 Refresh token from API:',
-            response.data.refreshToken?.substring(0, 30) + '...',
-          );
-          this.setAuthData(response.data);
-          // Verify storage
+          // The API returns the access token as 'token'
+          const token = response.data.token;
+          const refreshToken = response.data.refreshToken;
+          console.log('🔑 Token from API:', token?.substring(0, 30) + '...');
+          console.log('🔑 Refresh token from API:', refreshToken?.substring(0, 30) + '...');
+          this.setAuthData({
+            token: token,
+            refreshToken: refreshToken,
+            userName: response.data.userName,
+            roles: response.data.roles,
+          });
           console.log('🔑 Token stored?', !!localStorage.getItem(this.TOKEN_KEY));
           console.log('🔑 Refresh stored?', !!localStorage.getItem(this.REFRESH_TOKEN_KEY));
         }
@@ -186,12 +186,12 @@ export class AuthService {
 
   // Token Management
   private setAuthData(data: {
-    accessToken: string;
+    token: string;
     refreshToken: string;
     userName: string;
     roles: string[];
   }): void {
-    localStorage.setItem(this.TOKEN_KEY, data.accessToken);
+    localStorage.setItem(this.TOKEN_KEY, data.token);
     localStorage.setItem(this.REFRESH_TOKEN_KEY, data.refreshToken);
     localStorage.setItem(
       this.USER_KEY,
@@ -205,7 +205,7 @@ export class AuthService {
       userName: data.userName,
       roles: data.roles,
     });
-    this.isAdminSubject.next(data.roles.includes('Admin'));
+    this.isAdminSubject.next(data.roles?.includes('Admin') || false);
   }
 
   private clearAuthData(): void {

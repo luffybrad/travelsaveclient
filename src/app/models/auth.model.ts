@@ -27,7 +27,7 @@ export interface AuthResponse {
   success: boolean;
   message: string;
   data?: {
-    accessToken: string;
+    token: string;
     refreshToken: string;
     userName: string;
     roles: string[];
