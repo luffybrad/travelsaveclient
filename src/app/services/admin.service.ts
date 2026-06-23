@@ -14,29 +14,12 @@ export class AdminService {
   constructor(private http: HttpClient) {}
 
   // Dashboard
-  //   getDashboardStats(): Observable<ApiResponse<DashboardStats>> {
-  //     return this.http
-  //       .get<ApiResponse<DashboardStats>>(`${this.API_URL}/Admin/dashboard/stats`)
-  //       .pipe(catchError(this.handleError));
-  //   }
-
-  // ✅ Update getDashboardStats with better error handling
   getDashboardStats(): Observable<ApiResponse<DashboardStats>> {
-    console.log('📊 AdminService - getDashboardStats called');
     return this.http
       .get<ApiResponse<DashboardStats>>(`${this.API_URL}/Admin/dashboard/stats`, {
-        // ✅ Add withCredentials if needed
-        withCredentials: true,
+        withCredentials: false, // ✅ Disable credentials for this request
       })
-      .pipe(
-        catchError((error) => {
-          console.error('📊 AdminService - getDashboardStats error:', error);
-          if (error.status === 401) {
-            console.log('📊 AdminService - 401 received, will be handled by interceptor');
-          }
-          return this.handleError(error);
-        }),
-      );
+      .pipe(catchError(this.handleError));
   }
 
   // Users
