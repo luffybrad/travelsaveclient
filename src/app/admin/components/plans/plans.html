@@ -1,0 +1,172 @@
+<div class="p-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Plans</h1>
+            <p class="text-gray-600 mt-1">Manage all travel plans</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <div class="relative">
+                <input type="text" [(ngModel)]="searchTerm" (ngInput)="filterPlans()" placeholder="Search plans..."
+                    class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48 sm:w-64" />
+                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <select [(ngModel)]="filterStatus" (change)="filterPlans()"
+                class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                @for (status of statuses; track status) {
+                <option [value]="status">{{ status }}</option>
+                }
+            </select>
+            <button (click)="loadPlans()" [disabled]="isLoading"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    @if (error) {
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <svg class="h-5 w-5 text-red-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clip-rule="evenodd" />
+            </svg>
+            <div class="ml-3">
+                <p class="text-sm text-red-700">{{ error }}</p>
+                <button (click)="loadPlans()" class="mt-1 text-sm font-medium text-red-700 hover:text-red-800">
+                    Try again
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading) {
+    <div class="flex justify-center items-center h-64">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Loading plans...</p>
+        </div>
+    </div>
+    }
+
+    <!-- Plans Grid -->
+    @if (!isLoading && filteredPlans.length > 0) {
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        @for (plan of filteredPlans; track plan.id) {
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition">
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">{{ plan.name }}</h3>
+                        <p class="text-sm text-gray-500 mt-1">{{ plan.description || 'No description' }}</p>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-medium rounded-full" [class]="getStatusColor(plan.status)">
+                        {{ plan.status }}
+                    </span>
+                </div>
+
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Target Budget</span>
+                        <span class="font-medium">{{ formatCurrency(plan.targetBudget) }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-500">Current Balance</span>
+                        <span class="font-medium text-green-600">{{ formatCurrency(plan.currentBalance) }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 rounded-full h-2 transition-all"
+                            [style.width.%]="(plan.currentBalance / plan.targetBudget) * 100"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>{{ ((plan.currentBalance / plan.targetBudget) * 100).toFixed(1) }}% funded</span>
+                        <span>{{ plan.memberCount }} members</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                        <span>Owner: {{ plan.ownerName }}</span>
+                        <span>{{ plan.createdAt | date:'short' }}</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                    <button (click)="openStatusModal(plan)"
+                        class="flex-1 px-3 py-1.5 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
+                        Change Status
+                    </button>
+                    <button (click)="deletePlan(plan)"
+                        class="flex-1 px-3 py-1.5 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        }
+    </div>
+
+    <div class="mt-4 text-sm text-gray-500">
+        Showing {{ filteredPlans.length }} of {{ plans.length }} plans
+    </div>
+    }
+
+    <!-- Empty State -->
+    @if (!isLoading && filteredPlans.length === 0 && plans.length > 0) {
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+        <p class="text-gray-500">No plans found matching your search.</p>
+    </div>
+    }
+
+    @if (!isLoading && plans.length === 0) {
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+        <p class="text-gray-500">No plans found in the system.</p>
+    </div>
+    }
+</div>
+
+<!-- Status Update Modal -->
+@if (showStatusModal && selectedPlan) {
+<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl max-w-md w-full p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Update Plan Status</h3>
+            <button (click)="closeStatusModal()" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <p class="text-sm text-gray-600 mb-4">
+            Update status for <strong>{{ selectedPlan.name }}</strong>
+        </p>
+        <div class="space-y-3">
+            <button (click)="updatePlanStatus('Active')" [disabled]="isUpdating"
+                class="w-full px-4 py-2 text-left border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
+                <span class="font-medium text-green-600">Active</span>
+                <p class="text-sm text-gray-500">Plan is open and accepting contributions</p>
+            </button>
+            <button (click)="updatePlanStatus('Completed')" [disabled]="isUpdating"
+                class="w-full px-4 py-2 text-left border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
+                <span class="font-medium text-blue-600">Completed</span>
+                <p class="text-sm text-gray-500">Plan has reached its target or completed</p>
+            </button>
+            <button (click)="updatePlanStatus('Archived')" [disabled]="isUpdating"
+                class="w-full px-4 py-2 text-left border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
+                <span class="font-medium text-gray-600">Archived</span>
+                <p class="text-sm text-gray-500">Plan is archived and no longer active</p>
+            </button>
+        </div>
+        @if (isUpdating) {
+        <div class="mt-4 flex justify-center">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+        </div>
+        }
+    </div>
+</div>
+}

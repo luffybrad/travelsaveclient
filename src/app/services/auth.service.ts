@@ -245,4 +245,17 @@ export class AuthService {
     console.error('API Error:', error);
     return throwError(() => error);
   }
+
+  getUserRoles(): string[] {
+    const userData = localStorage.getItem(this.USER_KEY);
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        return user?.roles || [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }
 }

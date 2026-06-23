@@ -46,6 +46,42 @@ export const routes: Routes = [
             (m) => m.EmailConfirmationComponent,
           ),
       },
+      // ✅ Admin Routes with Layout
+      {
+        path: '',
+        loadComponent: () =>
+          import('./admin/components/layout/layout').then((m) => m.AdminLayoutComponent),
+        canActivate: [AdminAuthGuard],
+        children: [
+          {
+            path: 'dashboard',
+            loadComponent: () =>
+              import('./admin/components/dashboard/dashboard').then(
+                (m) => m.AdminDashboardComponent,
+              ),
+          },
+          {
+            path: 'users',
+            loadComponent: () =>
+              import('./admin/components/users/users').then((m) => m.UsersComponent),
+          },
+          {
+            path: 'plans',
+            loadComponent: () =>
+              import('./admin/components/plans/plans').then((m) => m.AdminPlansComponent),
+          },
+          {
+            path: 'ledger',
+            loadComponent: () =>
+              import('./admin/components/ledger/ledger').then((m) => m.AdminLedgerComponent),
+          },
+          {
+            path: '',
+            redirectTo: 'dashboard',
+            pathMatch: 'full',
+          },
+        ],
+      },
     ],
   },
   {

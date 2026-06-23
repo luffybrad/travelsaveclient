@@ -1,0 +1,154 @@
+<div class="p-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Ledger</h1>
+            <p class="text-gray-600 mt-1">View all financial transactions</p>
+        </div>
+        <div class="flex flex-wrap gap-3">
+            <div class="relative">
+                <input type="text" [(ngModel)]="searchTerm" (ngInput)="filterEntries()"
+                    placeholder="Search transactions..."
+                    class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48 sm:w-64" />
+                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </div>
+            <select [(ngModel)]="filterType" (change)="filterEntries()"
+                class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                @for (type of transactionTypes; track type) {
+                <option [value]="type">{{ type }}</option>
+                }
+            </select>
+            <button (click)="loadLedger()" [disabled]="isLoading"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+            <p class="text-sm text-gray-500">Total Transactions</p>
+            <p class="text-2xl font-bold text-gray-900">{{ filteredEntries.length }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+            <p class="text-sm text-gray-500">Net Balance</p>
+            <p class="text-2xl font-bold" [class]="totalAmount >= 0 ? 'text-green-600' : 'text-red-600'">
+                {{ formatCurrency(totalAmount) }}
+            </p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+            <p class="text-sm text-gray-500">Deposits</p>
+            <p class="text-2xl font-bold text-green-600">
+                {{ formatCurrency(entries.filter(e => e.transactionType === 'Deposit').reduce((sum, e) => sum +
+                e.amount, 0)) }}
+            </p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
+            <p class="text-sm text-gray-500">Withdrawals & Expenses</p>
+            <p class="text-2xl font-bold text-red-600">
+                {{ formatCurrency(entries.filter(e => e.transactionType === 'Withdrawal' || e.transactionType ===
+                'Expense').reduce((sum, e) => sum + e.amount, 0)) }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Error Message -->
+    @if (error) {
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <div class="flex items-start">
+            <svg class="h-5 w-5 text-red-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clip-rule="evenodd" />
+            </svg>
+            <div class="ml-3">
+                <p class="text-sm text-red-700">{{ error }}</p>
+                <button (click)="loadLedger()" class="mt-1 text-sm font-medium text-red-700 hover:text-red-800">
+                    Try again
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading) {
+    <div class="flex justify-center items-center h-64">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p class="mt-4 text-gray-600">Loading ledger entries...</p>
+        </div>
+    </div>
+    }
+
+    <!-- Ledger Table -->
+    @if (!isLoading && filteredEntries.length > 0) {
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Description</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    @for (entry of filteredEntries; track entry.id) {
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full"
+                                [class]="getTypeColor(entry.transactionType)">
+                                {{ getTypeIcon(entry.transactionType) }} {{ entry.transactionType }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-900">{{ entry.userName }}</td>
+                        <td class="px-6 py-4 font-medium" [class]="getAmountColor(entry.amount)">
+                            {{ formatCurrency(entry.amount) }}
+                        </td>
+                        <td class="px-6 py-4 text-gray-600">{{ entry.description }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-medium rounded-full"
+                                [class]="getStatusColor(entry.paymentStatus)">
+                                {{ entry.paymentStatus }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-500 text-sm">{{ entry.createdAt | date:'medium' }}</td>
+                    </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="px-6 py-3 border-t border-gray-100 bg-gray-50 text-sm text-gray-500">
+            Showing {{ filteredEntries.length }} of {{ entries.length }} transactions
+        </div>
+    </div>
+    }
+
+    <!-- Empty State -->
+    @if (!isLoading && filteredEntries.length === 0 && entries.length > 0) {
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+        <p class="text-gray-500">No transactions found matching your search.</p>
+    </div>
+    }
+
+    @if (!isLoading && entries.length === 0) {
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+        <p class="text-gray-500">No transactions found in the system.</p>
+    </div>
+    }
+</div>
