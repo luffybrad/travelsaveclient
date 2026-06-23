@@ -24,6 +24,7 @@ export class LoginComponent implements OnInit {
   isResending = false;
   resendSuccess = false;
   resendMessage: string | null = null;
+  showPassword = false;
 
   constructor(
     private fb: FormBuilder,
