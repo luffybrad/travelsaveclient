@@ -26,7 +26,7 @@ export class AdminService {
     return this.http
       .get<ApiResponse<DashboardStats>>(`${this.API_URL}/Admin/dashboard/stats`, {
         // ✅ Add withCredentials if needed
-        withCredentials: false,
+        withCredentials: true,
       })
       .pipe(
         catchError((error) => {
