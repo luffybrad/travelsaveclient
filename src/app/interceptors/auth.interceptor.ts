@@ -19,7 +19,6 @@ export class AuthInterceptor implements HttpInterceptor {
   constructor(private authService: AuthService) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // ✅ Only skip login and register endpoints
     const isLoginOrRegister =
       req.url.includes('/api/Auth/admin/login') ||
       req.url.includes('/api/Auth/user/login') ||
@@ -31,30 +30,25 @@ export class AuthInterceptor implements HttpInterceptor {
       return next.handle(req);
     }
 
-    // Skip OPTIONS requests
     if (req.method === 'OPTIONS') {
       return next.handle(req);
     }
 
     console.log('🔄 Interceptor - Request:', req.url);
-
-    // ✅ Get token directly from localStorage - bypass authService
     const token = localStorage.getItem('access_token');
-    console.log('🔄 Interceptor - Token from localStorage:', !!token);
-    console.log('🔄 Interceptor - Token preview:', token ? token.substring(0, 30) + '...' : 'null');
+    console.log('🔄 Interceptor - Token exists:', !!token);
 
-    let authReq = req;
+    let authReq = req.clone({ withCredentials: false }); // ✅ Always disable credentials
 
     if (token) {
-      // ✅ Force clone the request with the token
       authReq = req.clone({
         setHeaders: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        withCredentials: false,
       });
       console.log('🔄 Interceptor - ✅ Added Authorization header');
-      console.log('🔄 Interceptor - ✅ Authorization:', `Bearer ${token.substring(0, 20)}...`);
     } else {
       console.log('🔄 Interceptor - ❌ No token available');
     }
@@ -99,14 +93,14 @@ export class AuthInterceptor implements HttpInterceptor {
           if (response.success && response.data) {
             const newToken = response.data.accessToken;
             console.log('🔄 Interceptor - New token obtained');
-            localStorage.setItem('access_token', newToken); // ✅ Force save
+            localStorage.setItem('access_token', newToken);
             this.refreshTokenSubject.next(newToken);
-            // ✅ Retry the original request with new token
             const newRequest = request.clone({
               setHeaders: {
                 Authorization: `Bearer ${newToken}`,
                 'Content-Type': 'application/json',
               },
+              withCredentials: false,
             });
             return next.handle(newRequest);
           }
@@ -133,6 +127,7 @@ export class AuthInterceptor implements HttpInterceptor {
               Authorization: `Bearer ${token!}`,
               'Content-Type': 'application/json',
             },
+            withCredentials: false,
           });
           return next.handle(newRequest);
         }),
