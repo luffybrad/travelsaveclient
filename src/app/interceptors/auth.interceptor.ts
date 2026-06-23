@@ -35,10 +35,17 @@ export class AuthInterceptor implements HttpInterceptor {
     }
 
     console.log('🔄 Interceptor - Request:', req.url);
+
+    // ✅ If request already has Authorization header, skip adding one
+    if (req.headers.has('Authorization')) {
+      console.log('🔄 Interceptor - Request already has Authorization, skipping');
+      return next.handle(req);
+    }
+
     const token = localStorage.getItem('access_token');
     console.log('🔄 Interceptor - Token exists:', !!token);
 
-    let authReq = req.clone({ withCredentials: false }); // ✅ Always disable credentials
+    let authReq = req.clone({ withCredentials: false }); // Always disable credentials
 
     if (token) {
       authReq = req.clone({
