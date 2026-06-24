@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms'; // ✅ Add this
 import { AdminService } from '../../../services/admin.service';
 import { DashboardStats } from '../../../models/admin.model';
 import { finalize } from 'rxjs/operators';
+import { AuthService } from '../../../services/auth.service';
 
 declare const Chart: any;
 
@@ -25,6 +26,7 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
   stats: DashboardStats | null = null;
   isLoading = true;
   error: string | null = null;
+  userName: string = 'Admin';
 
   // Filter state
   activityFilter: string = 'all';
@@ -57,7 +59,12 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
     expense_added: 'fa-receipt',
   };
 
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private authService: AuthService,
+  ) {
+    this.userName = this.authService.getUserName() || 'Admin';
+  }
 
   ngOnInit(): void {
     this.loadDashboardStats();
