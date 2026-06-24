@@ -16,6 +16,15 @@ export class AdminDashboardComponent implements OnInit {
   isLoading = true;
   error: string | null = null;
 
+  // Icon classes for activity types (FontAwesome)
+  activityIcons: Record<string, string> = {
+    user_registered: 'fa-user-plus',
+    plan_created: 'fa-plus-circle',
+    deposit_made: 'fa-arrow-down',
+    withdrawal_made: 'fa-arrow-up',
+    expense_added: 'fa-receipt',
+  };
+
   constructor(private adminService: AdminService) {}
 
   ngOnInit(): void {
@@ -43,33 +52,12 @@ export class AdminDashboardComponent implements OnInit {
       });
   }
 
-  getStatusColor(status: string): string {
-    switch (status) {
-      case 'Active':
-        return 'bg-green-100 text-green-800';
-      case 'Completed':
-        return 'bg-blue-100 text-blue-800';
-      case 'Archived':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  getActivityIcon(type: string): string {
+    return this.activityIcons[type] || 'fa-circle';
   }
 
-  getActivityIcon(type: string): string {
-    switch (type) {
-      case 'user_registered':
-        return '👤';
-      case 'plan_created':
-        return '📋';
-      case 'deposit_made':
-        return '💰';
-      case 'withdrawal_made':
-        return '💸';
-      case 'expense_added':
-        return '🧾';
-      default:
-        return '📌';
-    }
+  // Format currency with dollar sign and 2 decimals
+  formatCurrency(value: number): string {
+    return `$${value.toFixed(2)}`;
   }
 }
