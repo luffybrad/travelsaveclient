@@ -2,6 +2,16 @@
 import { Routes } from '@angular/router';
 import { AdminAuthGuard } from './guards/admin-auth.guard';
 import { PublicGuard } from './guards/public.guard';
+import { LoginComponent } from './admin/auth/login/login';
+import { RegisterComponent } from './admin/auth/register/register';
+import { ForgotPasswordComponent } from './admin/auth/forgot-password/forgot-password';
+import { ResetPasswordComponent } from './admin/auth/reset-password/reset-password';
+import { EmailConfirmationComponent } from './admin/auth/email-confirmation/email-confirmation';
+import { AdminLayoutComponent } from './admin/components/layout/layout';
+import { AdminDashboardComponent } from './admin/components/dashboard/dashboard';
+import { UsersComponent } from './admin/components/users/users';
+import { AdminPlansComponent } from './admin/components/plans/plans';
+import { AdminLedgerComponent } from './admin/components/ledger/ledger';
 
 export const routes: Routes = [
   {
@@ -14,66 +24,50 @@ export const routes: Routes = [
     children: [
       {
         path: 'login',
-        loadComponent: () => import('./admin/auth/login/login').then((m) => m.LoginComponent),
+        component: LoginComponent,
         canActivate: [PublicGuard],
       },
       {
         path: 'register',
-        loadComponent: () =>
-          import('./admin/auth/register/register').then((m) => m.RegisterComponent),
+        component: RegisterComponent,
         canActivate: [PublicGuard],
       },
       {
         path: 'forgot-password',
-        loadComponent: () =>
-          import('./admin/auth/forgot-password/forgot-password').then(
-            (m) => m.ForgotPasswordComponent,
-          ),
+        component: ForgotPasswordComponent,
         canActivate: [PublicGuard],
       },
       {
         path: 'reset-password',
-        loadComponent: () =>
-          import('./admin/auth/reset-password/reset-password').then(
-            (m) => m.ResetPasswordComponent,
-          ),
+        component: ResetPasswordComponent,
         canActivate: [PublicGuard],
       },
       {
         path: 'email-confirmation',
-        loadComponent: () =>
-          import('./admin/auth/email-confirmation/email-confirmation').then(
-            (m) => m.EmailConfirmationComponent,
-          ),
+        component: EmailConfirmationComponent,
+        canActivate: [PublicGuard],
       },
       // ✅ Admin Routes with Layout
       {
         path: '',
-        loadComponent: () =>
-          import('./admin/components/layout/layout').then((m) => m.AdminLayoutComponent),
+        component: AdminLayoutComponent,
         canActivate: [AdminAuthGuard],
         children: [
           {
             path: 'dashboard',
-            loadComponent: () =>
-              import('./admin/components/dashboard/dashboard').then(
-                (m) => m.AdminDashboardComponent,
-              ),
+            component: AdminDashboardComponent,
           },
           {
             path: 'users',
-            loadComponent: () =>
-              import('./admin/components/users/users').then((m) => m.UsersComponent),
+            component: UsersComponent,
           },
           {
             path: 'plans',
-            loadComponent: () =>
-              import('./admin/components/plans/plans').then((m) => m.AdminPlansComponent),
+            component: AdminPlansComponent,
           },
           {
             path: 'ledger',
-            loadComponent: () =>
-              import('./admin/components/ledger/ledger').then((m) => m.AdminLedgerComponent),
+            component: AdminLedgerComponent,
           },
           {
             path: '',
