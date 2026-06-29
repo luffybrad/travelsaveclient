@@ -1,17 +1,20 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
   ElementRef,
   ViewChildren,
   QueryList,
-  AfterViewInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { FormsModule } from '@angular/forms'; // ✅ Add this
+import { FormsModule } from '@angular/forms';
+import { Subject, takeUntil, finalize } from 'rxjs';
 import { AdminService } from '../../../services/admin.service';
 import { DashboardStats } from '../../../models/admin.model';
-import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 
 declare const Chart: any;
@@ -19,10 +22,11 @@ declare const Chart: any;
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule], // ✅ Include FormsModule
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './dashboard.html',
+  changeDetection: ChangeDetectionStrategy.OnPush, // ✅ Performance
 })
-export class AdminDashboardComponent implements OnInit, AfterViewInit {
+export class AdminDashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   stats: DashboardStats | null = null;
   isLoading = true;
   error: string | null = null;
@@ -36,21 +40,10 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
   private barChart: any;
   private doughnutChart: any;
 
-  // Canvas references
   @ViewChildren('barChartCanvas') barChartCanvas!: QueryList<ElementRef>;
   @ViewChildren('doughnutChartCanvas') doughnutChartCanvas!: QueryList<ElementRef>;
 
-  // Activity types for filter dropdown
-  activityTypes = [
-    'all',
-    'user_registered',
-    'plan_created',
-    'deposit_made',
-    'withdrawal_made',
-    'expense_added',
-  ];
-
-  // FontAwesome icons for activity types
+  // Activity icons
   activityIcons: Record<string, string> = {
     user_registered: 'fa-user-plus',
     plan_created: 'fa-plus-circle',
@@ -59,9 +52,12 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
     expense_added: 'fa-receipt',
   };
 
+  private destroy$ = new Subject<void>();
+
   constructor(
     private adminService: AdminService,
     private authService: AuthService,
+    private cdr: ChangeDetectorRef,
   ) {
     this.userName = this.authService.getUserName() || 'Admin';
   }
@@ -70,8 +66,12 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
     this.loadDashboardStats();
   }
 
-  ngAfterViewInit(): void {
-    // Charts are initialized after data loads
+  ngAfterViewInit(): void {}
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+    this.destroyCharts();
   }
 
   loadDashboardStats(): void {
@@ -80,14 +80,19 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
 
     this.adminService
       .getDashboardStats()
-      .pipe(finalize(() => (this.isLoading = false)))
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+        }),
+      )
       .subscribe({
         next: (response) => {
           if (response.success && response.data) {
             this.stats = response.data;
             this.filteredActivities = response.data.recentActivities || [];
             this.applyFilter();
-            // Wait for DOM to render then init charts
             setTimeout(() => this.initCharts(), 300);
           } else {
             this.error = response.message || 'Failed to load dashboard stats';
@@ -108,39 +113,42 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
         (a) => a.type === this.activityFilter,
       );
     }
+    this.cdr.markForCheck();
   }
 
   getActivityIcon(type: string): string {
     return this.activityIcons[type] || 'fa-circle';
   }
 
+  // ✅ KSh currency formatter
   formatCurrency(value: number): string {
-    return `$${value.toFixed(2)}`;
+    return `KSh ${value.toFixed(2)}`;
   }
 
   private initCharts(): void {
     if (!this.stats) return;
+    this.destroyCharts();
 
-    // Destroy previous charts if they exist
-    if (this.barChart) this.barChart.destroy();
-    if (this.doughnutChart) this.doughnutChart.destroy();
-
-    // ---- Bar Chart: Deposits, Withdrawals, Expenses ----
+    // ---- Bar Chart: Deposits, Withdrawals, Expenses, Refunds ----
     const barCtx = document.getElementById('barChart') as HTMLCanvasElement;
     if (barCtx) {
+      // ✅ Include refunds (from backend) – ensure stats.totalRefunds exists
+      const refunds = (this.stats as any).totalRefunds || 0;
+
       this.barChart = new Chart(barCtx, {
         type: 'bar',
         data: {
-          labels: ['Deposits', 'Withdrawals', 'Expenses'],
+          labels: ['Deposits', 'Withdrawals', 'Expenses', 'Refunds'],
           datasets: [
             {
-              label: 'Amount ($)',
+              label: 'Amount (KSh)',
               data: [
                 this.stats.totalDeposits || 0,
                 Math.abs(this.stats.totalWithdrawals || 0),
                 Math.abs(this.stats.totalExpenses || 0),
+                refunds,
               ],
-              backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+              backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6'],
               borderRadius: 6,
             },
           ],
@@ -152,62 +160,60 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
           scales: {
             y: {
               beginAtZero: true,
-              ticks: { callback: (value: any) => '$' + value.toFixed(2) },
+              ticks: { callback: (value: any) => 'KSh ' + value.toFixed(0) },
             },
           },
         },
       });
     }
 
-    // ---- Doughnut Chart: Plan Status Distribution ----
+    // ---- Doughnut Chart: Plan Status Distribution (unchanged) ----
     const doughnutCtx = document.getElementById('doughnutChart') as HTMLCanvasElement;
     if (doughnutCtx) {
-      // Fetch real plan statuses from the API
-      this.adminService.getAllPlans().subscribe({
-        next: (res) => {
-          if (res.success && res.data) {
-            const statusMap: Record<string, number> = {};
-            res.data.forEach((p: any) => {
-              statusMap[p.status] = (statusMap[p.status] || 0) + 1;
-            });
-            const labels = Object.keys(statusMap);
-            const values = Object.values(statusMap);
-            const colors = ['#3b82f6', '#10b981', '#6b7280', '#ef4444'];
-            this.doughnutChart = new Chart(doughnutCtx, {
-              type: 'doughnut',
-              data: {
-                labels: labels,
-                datasets: [
-                  {
-                    data: values,
-                    backgroundColor: colors.slice(0, labels.length),
-                    borderWidth: 3,
-                    borderColor: '#ffffff',
-                  },
-                ],
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } },
+      this.adminService
+        .getAllPlans()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (res) => {
+            if (res.success && res.data) {
+              const statusMap: Record<string, number> = {};
+              res.data.forEach((p: any) => {
+                statusMap[p.status] = (statusMap[p.status] || 0) + 1;
+              });
+              const labels = Object.keys(statusMap);
+              const values = Object.values(statusMap);
+              const colors = ['#3b82f6', '#10b981', '#6b7280', '#ef4444'];
+              this.doughnutChart = new Chart(doughnutCtx, {
+                type: 'doughnut',
+                data: {
+                  labels: labels,
+                  datasets: [
+                    {
+                      data: values,
+                      backgroundColor: colors.slice(0, labels.length),
+                      borderWidth: 3,
+                      borderColor: '#ffffff',
+                    },
+                  ],
                 },
-                cutout: '70%',
-              },
-            });
-          } else {
-            // Fallback if API fails
-            this.initDoughnutFallback(doughnutCtx);
-          }
-        },
-        error: () => {
-          this.initDoughnutFallback(doughnutCtx);
-        },
-      });
+                options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 16 } },
+                  },
+                  cutout: '70%',
+                },
+              });
+            } else {
+              this.initDoughnutFallback(doughnutCtx);
+            }
+          },
+          error: () => this.initDoughnutFallback(doughnutCtx),
+        });
     }
   }
 
-  // Fallback when plan status API fails: show Active vs Inactive
   private initDoughnutFallback(ctx: HTMLCanvasElement): void {
     const active = this.stats?.activePlans || 0;
     const inactive = (this.stats?.totalPlans || 0) - active;
@@ -233,5 +239,16 @@ export class AdminDashboardComponent implements OnInit, AfterViewInit {
         cutout: '70%',
       },
     });
+  }
+
+  private destroyCharts(): void {
+    if (this.barChart) {
+      this.barChart.destroy();
+      this.barChart = null;
+    }
+    if (this.doughnutChart) {
+      this.doughnutChart.destroy();
+      this.doughnutChart = null;
+    }
   }
 }
