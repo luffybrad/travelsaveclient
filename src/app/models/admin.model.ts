@@ -66,3 +66,16 @@ export interface ApiResponse<T> {
   statusCode: number;
   timestamp: string;
 }
+
+export interface PlanDetail extends Plan {
+  members: PlanMember[];
+  ledgerEntries: LedgerEntry[];
+}
+
+export interface PlanMember {
+  userId: string;
+  userName: string;
+  role: string;
+  email: string;
+  joinedAt: string;
+}

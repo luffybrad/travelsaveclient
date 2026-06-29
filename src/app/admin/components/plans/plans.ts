@@ -10,7 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { AdminService } from '../../../services/admin.service';
-import { Plan } from '../../../models/admin.model';
+import { Plan, PlanDetail } from '../../../models/admin.model';
 
 @Component({
   selector: 'app-admin-plans',
@@ -24,6 +24,9 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
   filteredPlans: Plan[] = [];
   isLoading = true;
   error: string | null = null;
+  selectedPlanDetail: PlanDetail | null = null;
+  showDetailModal = false;
+  isLoadingDetail = false;
 
   // Filters
   searchTerm = '';
@@ -93,6 +96,37 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
           this.error = error?.error?.message || 'An unexpected error occurred';
         },
       });
+  }
+
+  viewPlanDetails(plan: Plan): void {
+    this.isLoadingDetail = true;
+    this.adminService
+      .getPlanById(plan.id)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isLoadingDetail = false;
+          this.cdr.markForCheck();
+        }),
+      )
+      .subscribe({
+        next: (response) => {
+          if (response.success && response.data) {
+            this.selectedPlanDetail = response.data;
+            this.showDetailModal = true;
+          } else {
+            this.error = response.message || 'Failed to load plan details';
+          }
+        },
+        error: (error) => {
+          this.error = error?.error?.message || 'An unexpected error occurred';
+        },
+      });
+  }
+
+  closeDetailModal(): void {
+    this.showDetailModal = false;
+    this.selectedPlanDetail = null;
   }
 
   calculateSummary(): void {
@@ -209,5 +243,21 @@ export class AdminPlansComponent implements OnInit, OnDestroy {
 
   formatCurrency(amount: number): string {
     return `KSh ${amount.toFixed(2)}`;
+  }
+
+  getTypeColor(type: string): string {
+    const map: Record<string, string> = {
+      Deposit: 'bg-green-100 text-green-800',
+      Withdrawal: 'bg-red-100 text-red-800',
+      Expense: 'bg-yellow-100 text-yellow-800',
+      Refund: 'bg-blue-100 text-blue-800',
+    };
+    return map[type] || 'bg-gray-100 text-gray-800';
+  }
+
+  getAmountColor(amount: number): string {
+    if (amount > 0) return 'text-green-600';
+    if (amount < 0) return 'text-red-600';
+    return 'text-gray-600';
   }
 }

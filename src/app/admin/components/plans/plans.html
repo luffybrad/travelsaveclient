@@ -138,15 +138,21 @@
                     </div>
                     <div class="flex justify-between text-xs text-gray-500">
                         <span>{{ ((plan.currentBalance / plan.targetBudget) * 100).toFixed(1) }}% funded</span>
-                        <span>{{ plan.memberCount }} members</span>
                     </div>
                     <div class="flex justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
                         <span>Owner: {{ plan.ownerName }}</span>
+                        <span class="inline-flex items-center gap-1">
+                            <i class="fas fa-users"></i> {{ plan.memberCount }} members
+                        </span>
                         <span>{{ plan.createdAt | date:'short' }}</span>
                     </div>
                 </div>
 
                 <div class="flex gap-2 mt-4 pt-4 border-t border-gray-100">
+                    <button (click)="viewPlanDetails(plan)"
+                        class="flex-1 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors">
+                        <i class="fas fa-eye mr-1"></i> Details
+                    </button>
                     <button (click)="openStatusModal(plan)"
                         class="flex-1 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
                         Change Status
@@ -218,6 +224,122 @@
             <i class="fas fa-spinner fa-spin text-blue-500 text-xl"></i>
         </div>
         }
+    </div>
+</div>
+}
+
+<!-- Plan Detail Modal -->
+@if (showDetailModal && selectedPlanDetail) {
+<div class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div
+        class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+        <div class="flex justify-between items-start mb-4 sticky top-0 bg-white z-10 pb-2 border-b border-gray-100">
+            <div>
+                <h3 class="text-xl font-bold text-gray-900">{{ selectedPlanDetail.name }}</h3>
+                <p class="text-sm text-gray-500">{{ selectedPlanDetail.description || 'No description' }}</p>
+            </div>
+            <button (click)="closeDetailModal()"
+                class="p-1 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Plan Overview -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                <p class="text-xs text-gray-500">Status</p>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-full"
+                    [class]="getStatusColor(selectedPlanDetail.status)">
+                    {{ selectedPlanDetail.status }}
+                </span>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                <p class="text-xs text-gray-500">Target Budget</p>
+                <p class="font-semibold">{{ formatCurrency(selectedPlanDetail.targetBudget) }}</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                <p class="text-xs text-gray-500">Current Balance</p>
+                <p class="font-semibold text-emerald-600">{{ formatCurrency(selectedPlanDetail.currentBalance) }}</p>
+            </div>
+            <div class="bg-gray-50 rounded-xl p-3 text-center">
+                <p class="text-xs text-gray-500">Members</p>
+                <p class="font-semibold">{{ selectedPlanDetail.members?.length || 0 }}</p>
+            </div>
+        </div>
+
+        <!-- Members Section -->
+        <div class="mb-6">
+            <h4 class="text-sm font-semibold text-gray-700 mb-2">Members</h4>
+            @if (selectedPlanDetail.members && selectedPlanDetail.members.length > 0) {
+            <div class="bg-gray-50 rounded-xl p-3 max-h-40 overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-xs text-gray-500">
+                            <th class="pb-1">User</th>
+                            <th class="pb-1">Role</th>
+                            <th class="pb-1">Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (member of selectedPlanDetail.members; track member.userId) {
+                        <tr>
+                            <td class="py-1">{{ member.userName }}</td>
+                            <td class="py-1">{{ member.role }}</td>
+                            <td class="py-1">{{ member.joinedAt | date:'short' }}</td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            } @else {
+            <p class="text-sm text-gray-500">No members yet.</p>
+            }
+        </div>
+
+        <!-- Ledger Entries -->
+        <div>
+            <h4 class="text-sm font-semibold text-gray-700 mb-2">Recent Ledger Entries</h4>
+            @if (selectedPlanDetail.ledgerEntries && selectedPlanDetail.ledgerEntries.length > 0) {
+            <div class="bg-gray-50 rounded-xl p-3 max-h-60 overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-xs text-gray-500">
+                            <th class="pb-1">Type</th>
+                            <th class="pb-1">Amount</th>
+                            <th class="pb-1">User</th>
+                            <th class="pb-1">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (entry of selectedPlanDetail.ledgerEntries; track entry.id) {
+                        <tr>
+                            <td class="py-1">
+                                <span class="px-2 py-0.5 text-xs rounded-full"
+                                    [class]="getTypeColor(entry.transactionType)">
+                                    {{ entry.transactionType }}
+                                </span>
+                            </td>
+                            <td class="py-1 font-medium" [class]="getAmountColor(entry.amount)">
+                                {{ formatCurrency(entry.amount) }}
+                            </td>
+                            <td class="py-1">{{ entry.userName }}</td>
+                            <td class="py-1">{{ entry.createdAt | date:'short' }}</td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            } @else {
+            <p class="text-sm text-gray-500">No ledger entries.</p>
+            }
+        </div>
+
+        <div class="mt-6 flex justify-end">
+            <button (click)="closeDetailModal()"
+                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors text-sm font-medium">
+                Close
+            </button>
+        </div>
     </div>
 </div>
 }

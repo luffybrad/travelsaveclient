@@ -3,7 +3,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http'; // ✅ import HttpHeaders
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { User, Plan, LedgerEntry, DashboardStats, ApiResponse } from '../models/admin.model';
+import {
+  User,
+  Plan,
+  LedgerEntry,
+  DashboardStats,
+  ApiResponse,
+  PlanDetail,
+} from '../models/admin.model';
 import { AuthService } from './auth.service';
 
 @Injectable({
@@ -88,9 +95,9 @@ export class AdminService {
       .pipe(catchError(this.handleError));
   }
 
-  getPlanById(planId: number): Observable<ApiResponse<Plan>> {
+  getPlanById(planId: number): Observable<ApiResponse<PlanDetail>> {
     return this.http
-      .get<ApiResponse<Plan>>(`${this.API_URL}/Admin/plans/${planId}`, {
+      .get<ApiResponse<PlanDetail>>(`${this.API_URL}/Admin/plans/${planId}`, {
         headers: this.getHeaders(),
         withCredentials: false,
       })
