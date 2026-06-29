@@ -192,34 +192,35 @@ export class AdminLedgerComponent implements OnInit, OnDestroy, AfterViewInit {
   private initCharts(): void {
     this.destroyCharts();
 
-    // Line Chart: Daily Deposit/Withdrawal Trend
+    // Line Chart: Daily Deposit / Withdrawal / Refund Trend
     const lineCtx = this.lineChartCanvas?.nativeElement;
     if (lineCtx) {
-      const deposits = this.entries
-        .filter((e) => e.transactionType === 'Deposit')
-        .reduce(
-          (acc, e) => {
-            const date = new Date(e.createdAt).toLocaleDateString();
-            acc[date] = (acc[date] || 0) + e.amount;
-            return acc;
-          },
-          {} as Record<string, number>,
-        );
+      // Aggregations by date
+      const deposits: Record<string, number> = {};
+      const withdrawals: Record<string, number> = {};
+      const refunds: Record<string, number> = {};
 
-      const withdrawals = this.entries
-        .filter((e) => e.transactionType === 'Withdrawal')
-        .reduce(
-          (acc, e) => {
-            const date = new Date(e.createdAt).toLocaleDateString();
-            acc[date] = (acc[date] || 0) + Math.abs(e.amount);
-            return acc;
-          },
-          {} as Record<string, number>,
-        );
+      this.entries.forEach((e) => {
+        const date = new Date(e.createdAt).toLocaleDateString();
+        if (e.transactionType === 'Deposit') {
+          deposits[date] = (deposits[date] || 0) + e.amount;
+        } else if (e.transactionType === 'Withdrawal') {
+          withdrawals[date] = (withdrawals[date] || 0) + Math.abs(e.amount);
+        } else if (e.transactionType === 'Refund') {
+          refunds[date] = (refunds[date] || 0) + Math.abs(e.amount);
+        }
+      });
 
-      const labels = Object.keys({ ...deposits, ...withdrawals }).sort();
+      const allDates = new Set([
+        ...Object.keys(deposits),
+        ...Object.keys(withdrawals),
+        ...Object.keys(refunds),
+      ]);
+      const labels = Array.from(allDates).sort();
+
       const depositData = labels.map((d) => deposits[d] || 0);
       const withdrawalData = labels.map((d) => withdrawals[d] || 0);
+      const refundData = labels.map((d) => refunds[d] || 0);
 
       this.lineChart = new Chart(lineCtx, {
         type: 'line',
@@ -242,6 +243,14 @@ export class AdminLedgerComponent implements OnInit, OnDestroy, AfterViewInit {
               fill: true,
               tension: 0.4,
             },
+            {
+              label: 'Refunds',
+              data: refundData,
+              borderColor: '#8b5cf6',
+              backgroundColor: 'rgba(139, 92, 246, 0.1)',
+              fill: true,
+              tension: 0.4,
+            },
           ],
         },
         options: {
@@ -260,7 +269,7 @@ export class AdminLedgerComponent implements OnInit, OnDestroy, AfterViewInit {
       });
     }
 
-    // Pie Chart: Transaction Type Distribution
+    // Pie Chart (unchanged, already includes refunds)
     const pieCtx = this.pieChartCanvas?.nativeElement;
     if (pieCtx) {
       const typeCount: Record<string, number> = {};
