@@ -1,4 +1,3 @@
-// src/app/interceptors/auth.interceptor.ts
 import { Injectable } from '@angular/core';
 import {
   HttpInterceptor,
@@ -19,14 +18,16 @@ export class AuthInterceptor implements HttpInterceptor {
   constructor(private authService: AuthService) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const isLoginOrRegister =
+    // ✅ Skip adding Authorization for login, register, and refresh
+    const isSkippedEndpoint =
       req.url.includes('/api/Auth/admin/login') ||
       req.url.includes('/api/Auth/user/login') ||
       req.url.includes('/api/Auth/admin/register') ||
-      req.url.includes('/api/Auth/user/register');
+      req.url.includes('/api/Auth/user/register') ||
+      req.url.includes('/api/Auth/refresh');
 
-    if (isLoginOrRegister) {
-      console.log('🔄 Interceptor - Skipping login/register:', req.url);
+    if (isSkippedEndpoint) {
+      console.log('🔄 Interceptor - Skipping auth endpoint:', req.url);
       return next.handle(req);
     }
 
@@ -36,7 +37,6 @@ export class AuthInterceptor implements HttpInterceptor {
 
     console.log('🔄 Interceptor - Request:', req.url);
 
-    // ✅ If request already has Authorization header, skip adding one
     if (req.headers.has('Authorization')) {
       console.log('🔄 Interceptor - Request already has Authorization, skipping');
       return next.handle(req);
@@ -45,7 +45,7 @@ export class AuthInterceptor implements HttpInterceptor {
     const token = this.authService.getToken();
     console.log('🔄 Interceptor - Token exists:', !!token);
 
-    let authReq = req.clone({ withCredentials: false }); // Always disable credentials
+    let authReq = req.clone({ withCredentials: false });
 
     if (token) {
       authReq = req.clone({
@@ -98,7 +98,7 @@ export class AuthInterceptor implements HttpInterceptor {
           console.log('🔄 Interceptor - Refresh response:', response.success);
           this.isRefreshing = false;
           if (response.success && response.data) {
-            const newToken = response.data.accessToken;
+            const newToken = response.data.token || response.data.accessToken;
             console.log('🔄 Interceptor - New token obtained');
             localStorage.setItem('access_token', newToken);
             this.refreshTokenSubject.next(newToken);

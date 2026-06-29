@@ -110,7 +110,29 @@ export class AuthService {
     return this.http.post<AuthResponse>(`${this.API_URL}/refresh`, { refreshToken }).pipe(
       tap((response) => {
         if (response.success && response.data) {
-          this.setAuthData(response.data);
+          const newToken = response.data.token;
+          if (newToken) {
+            localStorage.setItem(this.TOKEN_KEY, newToken);
+          }
+          // Update refresh token if provided (token rotation)
+          if (response.data.refreshToken) {
+            localStorage.setItem(this.REFRESH_TOKEN_KEY, response.data.refreshToken);
+          }
+          // Update user data if provided
+          if (response.data.userName) {
+            localStorage.setItem(
+              this.USER_KEY,
+              JSON.stringify({
+                userName: response.data.userName,
+                roles: response.data.roles || [],
+              }),
+            );
+            this.currentUserSubject.next({
+              userName: response.data.userName,
+              roles: response.data.roles || [],
+            });
+          }
+          this.isAdminSubject.next(response.data.roles?.includes('Admin') || false);
         }
       }),
       catchError((error) => {
