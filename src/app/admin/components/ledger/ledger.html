@@ -1,153 +1,224 @@
-<div class="p-6">
+<div class="p-4 sm:p-6 lg:p-8 space-y-8">
+
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h1 class="text-3xl font-bold text-gray-900">Ledger</h1>
-            <p class="text-gray-600 mt-1">View all financial transactions</p>
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Ledger</h1>
+            <p class="text-gray-500 mt-0.5">Complete overview of financial transactions</p>
         </div>
-        <div class="flex flex-wrap gap-3">
+        <div class="flex items-center gap-3">
             <div class="relative">
-                <input type="text" [(ngModel)]="searchTerm" (ngInput)="filterEntries()"
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                <input type="text" [(ngModel)]="searchTerm" (input)="onSearchInput($any($event.target).value)"
                     placeholder="Search transactions..."
-                    class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48 sm:w-64" />
-                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+                    class="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48 sm:w-64 bg-gray-50/50 transition-shadow" />
             </div>
             <select [(ngModel)]="filterType" (change)="filterEntries()"
-                class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                class="px-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
                 @for (type of transactionTypes; track type) {
                 <option [value]="type">{{ type }}</option>
                 }
             </select>
             <button (click)="loadLedger()" [disabled]="isLoading"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
+                class="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium rounded-xl shadow-lg shadow-blue-100 transition-all duration-200 disabled:opacity-50">
+                <i class="fas fa-sync-alt mr-2" [class.fa-spin]="isLoading"></i>
                 Refresh
             </button>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-            <p class="text-sm text-gray-500">Total Transactions</p>
-            <p class="text-2xl font-bold text-gray-900">{{ filteredEntries.length }}</p>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-            <p class="text-sm text-gray-500">Net Balance</p>
-            <p class="text-2xl font-bold" [class]="totalAmount >= 0 ? 'text-green-600' : 'text-red-600'">
-                {{ formatCurrency(totalAmount) }}
-            </p>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-            <p class="text-sm text-gray-500">Deposits</p>
-            <p class="text-2xl font-bold text-green-600">
-                {{ formatCurrency(entries.filter(e => e.transactionType === 'Deposit').reduce((sum, e) => sum +
-                e.amount, 0)) }}
-            </p>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-            <p class="text-sm text-gray-500">Withdrawals & Expenses</p>
-            <p class="text-2xl font-bold text-red-600">
-                {{ formatCurrency(entries.filter(e => e.transactionType === 'Withdrawal' || e.transactionType ===
-                'Expense').reduce((sum, e) => sum + e.amount, 0)) }}
-            </p>
-        </div>
-    </div>
-
-    <!-- Error Message -->
+    <!-- Error State -->
     @if (error) {
-    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <div class="flex items-start">
-            <svg class="h-5 w-5 text-red-400 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clip-rule="evenodd" />
-            </svg>
-            <div class="ml-3">
-                <p class="text-sm text-red-700">{{ error }}</p>
-                <button (click)="loadLedger()" class="mt-1 text-sm font-medium text-red-700 hover:text-red-800">
-                    Try again
-                </button>
-            </div>
+    <div class="bg-red-50 border border-red-200 rounded-xl p-5 flex items-start gap-4">
+        <i class="fas fa-exclamation-circle text-red-500 text-xl mt-0.5"></i>
+        <div class="flex-1">
+            <p class="text-red-700">{{ error }}</p>
+            <button (click)="loadLedger()" class="mt-1 text-sm font-medium text-red-700 hover:text-red-800 underline">
+                Try again
+            </button>
         </div>
     </div>
     }
 
     <!-- Loading State -->
     @if (isLoading) {
-    <div class="flex justify-center items-center h-64">
-        <div class="text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p class="mt-4 text-gray-600">Loading ledger entries...</p>
-        </div>
+    <div class="flex flex-col items-center justify-center py-16">
+        <i class="fas fa-spinner fa-spin text-4xl text-blue-500"></i>
+        <p class="mt-4 text-gray-500">Loading ledger entries...</p>
     </div>
     }
 
-    <!-- Ledger Table -->
-    @if (!isLoading && filteredEntries.length > 0) {
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    @if (!isLoading && entries.length > 0) {
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Transactions -->
+        <div
+            class="group bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-2xl p-6 border border-blue-200/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-blue-700/80">Total Transactions</p>
+                    <p class="text-3xl font-bold text-gray-900 mt-1">{{ filteredEntries.length }}</p>
+                </div>
+                <div
+                    class="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-list-ul text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Net Balance -->
+        <div
+            class="group bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-2xl p-6 border border-purple-200/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-purple-700/80">Net Balance</p>
+                    <p class="text-3xl font-bold mt-1" [class.text-purple-600]="netBalance >= 0"
+                        [class.text-red-600]="netBalance < 0">
+                        {{ formatCurrency(netBalance) }}
+                    </p>
+                </div>
+                <div
+                    class="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-calculator text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Deposits -->
+        <div
+            class="group bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-2xl p-6 border border-emerald-200/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-emerald-700/80">Total Deposits</p>
+                    <p class="text-3xl font-bold text-emerald-600 mt-1">{{ formatCurrency(totalDeposits) }}</p>
+                </div>
+                <div
+                    class="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-arrow-down text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdrawals & Expenses -->
+        <div
+            class="group bg-gradient-to-br from-red-50 to-red-100/50 rounded-2xl p-6 border border-red-200/50 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-red-700/80">Withdrawals & Expenses</p>
+                    <p class="text-3xl font-bold text-red-600 mt-1">{{ formatCurrency(totalWithdrawalsAndExpenses) }}
+                    </p>
+                </div>
+                <div
+                    class="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center text-red-600 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-arrow-up text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Line Chart -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold text-gray-700">Transaction Trend</h3>
+                <span class="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">Deposits vs Withdrawals</span>
+            </div>
+            <div class="h-64">
+                <canvas #lineChartCanvas></canvas>
+            </div>
+        </div>
+
+        <!-- Pie Chart -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-semibold text-gray-700">Transaction Distribution</h3>
+                <span class="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">By type</span>
+            </div>
+            <div class="h-64">
+                <canvas #pieChartCanvas></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-800">All Transactions</h2>
+        </div>
+
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="w-full text-sm">
                 <thead class="bg-gray-50 border-b border-gray-100">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type
                         </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User
                         </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Amount</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Description</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Status</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date
                         </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
+                    @if (filteredEntries.length === 0) {
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+                            <i class="fas fa-inbox text-3xl text-gray-300 mb-2 block"></i>
+                            <span class="text-sm">No transactions match your filters.</span>
+                        </td>
+                    </tr>
+                    }
                     @for (entry of filteredEntries; track entry.id) {
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 text-xs font-medium rounded-full"
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="px-6 py-3 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full"
                                 [class]="getTypeColor(entry.transactionType)">
-                                {{ getTypeIcon(entry.transactionType) }} {{ entry.transactionType }}
+                                <i class="fas {{ getTypeIcon(entry.transactionType) }}"></i>
+                                {{ entry.transactionType }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-gray-900">{{ entry.userName }}</td>
-                        <td class="px-6 py-4 font-medium" [class]="getAmountColor(entry.amount)">
+                        <td class="px-6 py-3 text-gray-800">{{ entry.userName }}</td>
+                        <td class="px-6 py-3 text-right font-medium" [class]="getAmountColor(entry.amount)">
                             {{ formatCurrency(entry.amount) }}
                         </td>
-                        <td class="px-6 py-4 text-gray-600">{{ entry.description }}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 text-xs font-medium rounded-full"
+                        <td class="px-6 py-3 text-gray-600">{{ entry.description }}</td>
+                        <td class="px-6 py-3 text-center">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full"
                                 [class]="getStatusColor(entry.paymentStatus)">
+                                <span class="w-1.5 h-1.5 rounded-full" [class]="{
+                        'bg-green-600': entry.paymentStatus === 'Success',
+                        'bg-yellow-600': entry.paymentStatus === 'Pending',
+                        'bg-red-600': entry.paymentStatus === 'Failed'
+                      }"></span>
                                 {{ entry.paymentStatus }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-gray-500 text-sm">{{ entry.createdAt | date:'medium' }}</td>
+                        <td class="px-6 py-3 text-gray-500 text-xs">{{ entry.createdAt | date:'medium' }}</td>
                     </tr>
                     }
                 </tbody>
             </table>
         </div>
-        <div class="px-6 py-3 border-t border-gray-100 bg-gray-50 text-sm text-gray-500">
-            Showing {{ filteredEntries.length }} of {{ entries.length }} transactions
+
+        <div
+            class="px-6 py-3 border-t border-gray-100 bg-gray-50/50 text-xs text-gray-500 flex justify-between items-center">
+            <span>Showing {{ filteredEntries.length }} of {{ entries.length }} transactions</span>
+            <span class="text-gray-400">Total records</span>
         </div>
     </div>
     }
 
-    <!-- Empty State -->
-    @if (!isLoading && filteredEntries.length === 0 && entries.length > 0) {
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
-        <p class="text-gray-500">No transactions found matching your search.</p>
-    </div>
-    }
-
+    <!-- Empty state when no entries -->
     @if (!isLoading && entries.length === 0) {
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 p-12 text-center">
+        <i class="fas fa-coins text-4xl text-gray-300 mb-3 block"></i>
         <p class="text-gray-500">No transactions found in the system.</p>
     </div>
     }
