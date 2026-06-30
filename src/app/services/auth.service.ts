@@ -293,4 +293,9 @@ export class AuthService {
     }
     return [];
   }
+
+  public clearLocalSessionAndRedirect(): void {
+    this.clearAuthData(); // private method, but accessible inside the class
+    this.router.navigate(['/admin/login']);
+  }
 }
