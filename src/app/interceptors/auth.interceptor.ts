@@ -18,7 +18,7 @@ export class AuthInterceptor implements HttpInterceptor {
   constructor(private authService: AuthService) {}
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // ✅ Skip adding Authorization for login, register, and refresh
+    // Skip adding Authorization for login, register, and refresh
     const isSkippedEndpoint =
       req.url.includes('/api/Auth/admin/login') ||
       req.url.includes('/api/Auth/user/login') ||
@@ -37,29 +37,31 @@ export class AuthInterceptor implements HttpInterceptor {
 
     console.log('🔄 Interceptor - Request:', req.url);
 
-    if (req.headers.has('Authorization')) {
-      console.log('🔄 Interceptor - Request already has Authorization, skipping');
-      return next.handle(req);
-    }
-
-    const token = this.authService.getToken();
-    console.log('🔄 Interceptor - Token exists:', !!token);
-
+    // Start with a clone that disables credentials
     let authReq = req.clone({ withCredentials: false });
 
-    if (token) {
-      authReq = req.clone({
-        setHeaders: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        withCredentials: false,
-      });
-      console.log('🔄 Interceptor - ✅ Added Authorization header');
+    // Only add Authorization header if not already present
+    if (!req.headers.has('Authorization')) {
+      const token = this.authService.getToken();
+      console.log('🔄 Interceptor - Token exists:', !!token);
+
+      if (token) {
+        authReq = req.clone({
+          setHeaders: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          withCredentials: false,
+        });
+        console.log('🔄 Interceptor - ✅ Added Authorization header');
+      } else {
+        console.log('🔄 Interceptor - ❌ No token available');
+      }
     } else {
-      console.log('🔄 Interceptor - ❌ No token available');
+      console.log('🔄 Interceptor - Request already has Authorization, skipping add');
     }
 
+    // ✅ Apply error handling to EVERY request
     return next.handle(authReq).pipe(
       tap({
         next: (event: any) => {
@@ -88,6 +90,13 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private handle401Error(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const refreshToken = this.authService.getRefreshToken();
+    if (!refreshToken) {
+      console.log('🔄 Interceptor - No refresh token, redirecting to login');
+      this.authService.clearLocalSessionAndRedirect();
+      return throwError(() => new Error('No refresh token'));
+    }
+
     if (!this.isRefreshing) {
       console.log('🔄 Interceptor - Starting token refresh');
       this.isRefreshing = true;
@@ -112,13 +121,13 @@ export class AuthInterceptor implements HttpInterceptor {
             return next.handle(newRequest);
           }
           console.log('🔄 Interceptor - Refresh failed, clearing auth data');
-          this.authService.logout();
+          this.authService.clearLocalSessionAndRedirect();
           return throwError(() => new Error('Token refresh failed'));
         }),
         catchError((error) => {
           console.log('🔄 Interceptor - Refresh error:', error);
           this.isRefreshing = false;
-          this.authService.logout();
+          this.authService.clearLocalSessionAndRedirect();
           return throwError(() => error);
         }),
       );
