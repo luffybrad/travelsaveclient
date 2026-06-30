@@ -24,6 +24,7 @@ export class AdminLayoutComponent {
     { path: '/admin/users', icon: 'users', label: 'Users' },
     { path: '/admin/plans', icon: 'file-alt', label: 'Plans' },
     { path: '/admin/ledger', icon: 'coins', label: 'Ledger' },
+    { path: '/admin/profile', icon: 'fa-user-cog', label: 'Profile' },
   ];
 
   constructor(

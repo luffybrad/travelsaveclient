@@ -12,6 +12,7 @@ import { AdminDashboardComponent } from './admin/components/dashboard/dashboard'
 import { UsersComponent } from './admin/components/users/users';
 import { AdminPlansComponent } from './admin/components/plans/plans';
 import { AdminLedgerComponent } from './admin/components/ledger/ledger';
+import { AdminProfileComponent } from './admin/components/profile/profile';
 
 export const routes: Routes = [
   {
@@ -68,6 +69,10 @@ export const routes: Routes = [
           {
             path: 'ledger',
             component: AdminLedgerComponent,
+          },
+          {
+            path: 'profile',
+            component: AdminProfileComponent,
           },
           {
             path: '',

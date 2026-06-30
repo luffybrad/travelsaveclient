@@ -1,0 +1,217 @@
+<div class="p-4 sm:p-6 lg:p-8 space-y-8">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Profile</h1>
+            <p class="text-gray-500 mt-0.5">Manage your account settings and preferences</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                {{ profile.roles ? profile.roles.join(', ') : 'User' }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Profile Information Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+            <h2 class="text-base font-semibold text-gray-800">Profile Information</h2>
+            @if (!isEditing) {
+            <button (click)="toggleEdit()"
+                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                <i class="fas fa-edit mr-2"></i> Edit
+            </button>
+            }
+        </div>
+
+        <div class="p-6 space-y-6">
+            @if (!isEditing) {
+            <!-- View Mode -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Username</label>
+                    <p class="text-gray-900 font-medium">{{ profile.userName }}</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500">Email</label>
+                    <p class="text-gray-900 font-medium">{{ profile.email }}</p>
+                    <span class="inline-flex items-center gap-1 mt-1 px-2 py-0.5 text-xs rounded-full"
+                        [class]="profile.emailConfirmed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'">
+                        <span class="w-1.5 h-1.5 rounded-full"
+                            [class]="profile.emailConfirmed ? 'bg-green-600' : 'bg-yellow-600'"></span>
+                        {{ profile.emailConfirmed ? 'Verified' : 'Unverified' }}
+                    </span>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-500">Roles</label>
+                    <div class="flex flex-wrap gap-2 mt-1">
+                        @for (role of profile.roles; track role) {
+                        <span class="px-3 py-1 text-xs font-medium rounded-full" [class]="getRoleBadgeColor(role)">
+                            {{ role }}
+                        </span>
+                        }
+                    </div>
+                </div>
+            </div>
+            } @else {
+            <!-- Edit Mode -->
+            <form (ngSubmit)="saveProfile()" #editForm="ngForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="editUserName" class="block text-sm font-medium text-gray-700">Username</label>
+                        <input id="editUserName" type="text" [(ngModel)]="editProfile.userName" name="editUserName"
+                            required
+                            class="mt-1 w-full px-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/50" />
+                    </div>
+                    <div>
+                        <label for="editEmail" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input id="editEmail" type="email" [(ngModel)]="editProfile.email" name="editEmail" required
+                            class="mt-1 w-full px-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/50" />
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="editCurrentPassword" class="block text-sm font-medium text-gray-700">Current
+                            Password <span class="text-red-500">*</span></label>
+                        <input id="editCurrentPassword" type="password" [(ngModel)]="editProfile.currentPassword"
+                            name="editCurrentPassword" required
+                            class="mt-1 w-full px-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/50"
+                            placeholder="Enter your current password to save changes" />
+                    </div>
+                </div>
+
+                @if (updateError) {
+                <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                    <i class="fas fa-exclamation-circle mr-2"></i> {{ updateError }}
+                </div>
+                }
+                @if (updateSuccess) {
+                <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
+                    <i class="fas fa-check-circle mr-2"></i> Profile updated successfully!
+                </div>
+                }
+
+                <div class="mt-6 flex gap-3">
+                    <button type="submit" [disabled]="updateLoading"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors disabled:opacity-50">
+                        @if (updateLoading) {
+                        <i class="fas fa-spinner fa-spin mr-2"></i> Saving...
+                        } @else {
+                        <i class="fas fa-save mr-2"></i> Save Changes
+                        }
+                    </button>
+                    <button type="button" (click)="toggleEdit()"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded-xl transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+            }
+        </div>
+    </div>
+
+    <!-- Change Password Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200/80 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h2 class="text-base font-semibold text-gray-800">Change Password</h2>
+        </div>
+        <div class="p-6">
+            <form (ngSubmit)="changePassword()" #passwordForm="ngForm">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="currentPassword" class="block text-sm font-medium text-gray-700">Current
+                            Password</label>
+                        <input id="currentPassword" type="password" [(ngModel)]="passwordData.currentPassword"
+                            name="currentPassword" required
+                            class="mt-1 w-full px-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/50" />
+                    </div>
+                    <div></div>
+                    <div>
+                        <label for="newPassword" class="block text-sm font-medium text-gray-700">New Password</label>
+                        <input id="newPassword" type="password" [(ngModel)]="passwordData.newPassword"
+                            name="newPassword" minlength="6" required
+                            class="mt-1 w-full px-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/50" />
+                    </div>
+                    <div>
+                        <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm New
+                            Password</label>
+                        <input id="confirmPassword" type="password" [(ngModel)]="passwordData.confirmPassword"
+                            name="confirmPassword" required
+                            class="mt-1 w-full px-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/50" />
+                    </div>
+                </div>
+
+                @if (passwordError) {
+                <div class="mt-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                    <i class="fas fa-exclamation-circle mr-2"></i> {{ passwordError }}
+                </div>
+                }
+                @if (passwordSuccess) {
+                <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm">
+                    <i class="fas fa-check-circle mr-2"></i> Password changed successfully!
+                </div>
+                }
+
+                <div class="mt-6">
+                    <button type="submit" [disabled]="passwordLoading"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors disabled:opacity-50">
+                        @if (passwordLoading) {
+                        <i class="fas fa-spinner fa-spin mr-2"></i> Changing...
+                        } @else {
+                        <i class="fas fa-key mr-2"></i> Change Password
+                        }
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Account Card -->
+    <div class="bg-white rounded-2xl shadow-sm border border-red-200/80 overflow-hidden">
+        <div class="px-6 py-4 border-b border-red-100 bg-red-50/50">
+            <h2 class="text-base font-semibold text-red-700">Danger Zone</h2>
+        </div>
+        <div class="p-6">
+            <p class="text-sm text-gray-600 mb-4">
+                Once you delete your account, all associated data will be permanently removed. This action cannot be
+                undone.
+            </p>
+
+            @if (!showDeleteConfirm) {
+            <button (click)="confirmDelete()"
+                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors">
+                <i class="fas fa-trash mr-2"></i> Delete Account
+            </button>
+            } @else {
+            <div class="space-y-4">
+                <div>
+                    <label for="deletePassword" class="block text-sm font-medium text-gray-700">Enter your current
+                        password to confirm</label>
+                    <input id="deletePassword" type="password" [(ngModel)]="passwordData.currentPassword"
+                        name="deletePassword"
+                        class="mt-1 w-full max-w-md px-4 py-2 text-sm border border-red-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-red-50/50"
+                        placeholder="Current password" />
+                </div>
+                @if (deleteError) {
+                <div class="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+                    <i class="fas fa-exclamation-circle mr-2"></i> {{ deleteError }}
+                </div>
+                }
+                <div class="flex gap-3">
+                    <button (click)="deleteAccount()" [disabled]="deleteLoading"
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-xl shadow-sm transition-colors disabled:opacity-50">
+                        @if (deleteLoading) {
+                        <i class="fas fa-spinner fa-spin mr-2"></i> Deleting...
+                        } @else {
+                        <i class="fas fa-exclamation-triangle mr-2"></i> Yes, Delete My Account
+                        }
+                    </button>
+                    <button (click)="cancelDelete()"
+                        class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium rounded-xl transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+            }
+        </div>
+    </div>
+</div>
