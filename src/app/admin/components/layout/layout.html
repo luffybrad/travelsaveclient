@@ -33,7 +33,7 @@
                 <!-- Tooltip for collapsed state -->
                 @if (!isSidebarOpen) {
                 <div
-                    class="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 whitespace-nowrap">
+                    class="absolute left-full top-0 ml-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     {{ item.label }}
                 </div>
                 }
@@ -41,9 +41,9 @@
             }
         </nav>
 
-        <!-- User Profile -->
-        <div class="border-t border-gray-700/50 p-4">
-            <div class="flex items-center gap-3">
+        <!-- Sidebar User Profile -->
+        <div class="border-t border-gray-700/50 p-4 relative user-dropdown-container">
+            <div class="flex items-center gap-3 cursor-pointer" (click)="toggleDropdown($event)">
                 <!-- Avatar -->
                 <div
                     class="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold shadow-inner">
@@ -55,21 +55,30 @@
                     <p class="text-sm font-medium text-white truncate">{{ userName || 'Admin' }}</p>
                     <p class="text-xs text-gray-400">Administrator</p>
                 </div>
-                <button (click)="logout()"
-                    class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                    aria-label="Logout">
-                    <i class="fas fa-sign-out-alt w-5 h-5"></i>
-                </button>
+                <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"
+                    [class.rotate-180]="isDropdownOpen"></i>
                 }
-
                 @if (!isSidebarOpen) {
-                <button (click)="logout()"
-                    class="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                    aria-label="Logout">
-                    <i class="fas fa-sign-out-alt w-5 h-5"></i>
-                </button>
+                <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"
+                    [class.rotate-180]="isDropdownOpen"></i>
                 }
             </div>
+
+            <!-- Dropdown Menu -->
+            @if (isDropdownOpen) {
+            <div
+                class="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <a routerLink="/admin/profile" (click)="closeDropdown()"
+                    class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg">
+                    <i class="fas fa-user"></i> View Profile
+                </a>
+                <hr class="my-1">
+                <button (click)="logout()"
+                    class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-b-lg">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+            }
         </div>
     </aside>
 
@@ -99,13 +108,33 @@
                     <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
                 </button>
 
-                <!-- User avatar (desktop) -->
-                <div class="hidden md:flex items-center gap-2 pl-2 border-l border-gray-200/60">
-                    <div
-                        class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-medium text-sm">
-                        {{ (userName || 'A').charAt(0).toUpperCase() }}
+                <!-- User dropdown (desktop) -->
+                <div
+                    class="hidden md:flex items-center gap-2 pl-2 border-l border-gray-200/60 relative user-dropdown-container">
+                    <div class="flex items-center gap-2 cursor-pointer" (click)="toggleDropdown($event)">
+                        <div
+                            class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-medium text-sm">
+                            {{ (userName || 'A').charAt(0).toUpperCase() }}
+                        </div>
+                        <span class="text-sm text-gray-700 font-medium">{{ userName || 'Admin' }}</span>
+                        <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform"
+                            [class.rotate-180]="isDropdownOpen"></i>
                     </div>
-                    <span class="text-sm text-gray-700 font-medium">{{ userName || 'Admin' }}</span>
+
+                    @if (isDropdownOpen) {
+                    <div
+                        class="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                        <a routerLink="/admin/profile" (click)="closeDropdown()"
+                            class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg">
+                            <i class="fas fa-user"></i> View Profile
+                        </a>
+                        <hr class="my-1">
+                        <button (click)="logout()"
+                            class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 rounded-b-lg">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                    }
                 </div>
 
                 <!-- Mobile logout (visible on small screens) -->

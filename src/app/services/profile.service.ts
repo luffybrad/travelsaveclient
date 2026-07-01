@@ -2,7 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, tap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
 
@@ -37,9 +37,12 @@ export class ProfileService {
     email: string;
     currentPassword: string;
   }): Observable<any> {
-    return this.http
-      .patch(`${this.API_URL}`, data, { headers: this.getHeaders() })
-      .pipe(catchError(this.handleError));
+    return this.http.patch(`${this.API_URL}`, data, { headers: this.getHeaders() }).pipe(
+      tap(() => {
+        this.authService.updateUserData(data.userName);
+      }),
+      catchError(this.handleError),
+    );
   }
 
   changePassword(data: { currentPassword: string; newPassword: string }): Observable<any> {

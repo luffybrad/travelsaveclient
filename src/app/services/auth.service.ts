@@ -298,4 +298,24 @@ export class AuthService {
     this.clearAuthData(); // private method, but accessible inside the class
     this.router.navigate(['/admin/login']);
   }
+
+  // src/app/services/auth.service.ts
+
+  /**
+   * Update the stored user data (e.g., after a successful profile update).
+   * This updates both localStorage and the BehaviorSubject.
+   */
+  public updateUserData(userName: string, roles?: string[]): void {
+    const currentUser = this.currentUserSubject.value;
+    if (currentUser) {
+      const updatedUser = {
+        ...currentUser,
+        userName,
+        roles: roles || currentUser.roles,
+      };
+      localStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));
+      this.currentUserSubject.next(updatedUser);
+      this.isAdminSubject.next(updatedUser.roles?.includes('Admin') || false);
+    }
+  }
 }
