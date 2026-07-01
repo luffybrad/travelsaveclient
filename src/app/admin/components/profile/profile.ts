@@ -90,6 +90,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
             this.editProfile.userName = response.data.userName;
             this.editProfile.email = response.data.email;
             this.cdr.markForCheck();
+            this.isLoading = false;
           } else {
             this.loadingError = response.message || 'Failed to load profile.';
             this.cdr.markForCheck();
