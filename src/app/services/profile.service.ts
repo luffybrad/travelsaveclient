@@ -10,7 +10,7 @@ import { environment } from '../../environments/environment';
   providedIn: 'root',
 })
 export class ProfileService {
-  private readonly API_URL = `${environment.apiUrl}/Profile`;
+  private readonly API_URL = 'https://travelsaveapi.onrender.com/api/Profile';
 
   constructor(
     private http: HttpClient,
