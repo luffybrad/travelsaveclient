@@ -93,6 +93,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
             this.isLoading = false;
           } else {
             this.loadingError = response.message || 'Failed to load profile.';
+            this.isLoading = false;
             this.cdr.markForCheck();
           }
         },
