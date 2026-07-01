@@ -26,6 +26,7 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
     userName: '',
     email: '',
     emailConfirmed: false,
+
     roles: [] as string[],
   };
 
@@ -55,6 +56,9 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
   deleteError = '';
   showDeleteConfirm = false;
 
+  isLoading = false;
+  loadingError = '';
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -74,6 +78,8 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
   }
 
   loadProfile(): void {
+    this.isLoading = true;
+    this.loadingError = '';
     this.profileService
       .getProfile()
       .pipe(takeUntil(this.destroy$))
@@ -84,10 +90,16 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
             this.editProfile.userName = response.data.userName;
             this.editProfile.email = response.data.email;
             this.cdr.markForCheck();
+          } else {
+            this.loadingError = response.message || 'Failed to load profile.';
+            this.cdr.markForCheck();
           }
         },
         error: (error) => {
-          console.error('Failed to load profile', error);
+          this.loadingError =
+            error?.error?.message || 'An unexpected error occurred while loading profile.';
+          this.isLoading = false;
+          this.cdr.markForCheck();
         },
       });
   }
@@ -146,6 +158,10 @@ export class AdminProfileComponent implements OnInit, OnDestroy {
           this.updateError = error?.error?.message || 'An unexpected error occurred.';
         },
       });
+  }
+
+  retryLoad(): void {
+    this.loadProfile();
   }
 
   // --- Change Password ---
